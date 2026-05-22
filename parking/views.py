@@ -1,0 +1,210 @@
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib import messages
+from django.http import JsonResponse, HttpResponse
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
+import json, uuid
+
+from .models import ParkingSlot, ParkingSession, Payment, Receipt, IoTCommand
+from .utils import generate_receipt_pdf, send_iot_command, simulate_payment
+
+
+def home(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    return render(request, 'parking/home.html')
+
+
+def register_view(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            messages.success(request, f'Welcome, {user.username}! Your account is ready.')
+            return redirect('dashboard')
+    else:
+        form = UserCreationForm()
+    return render(request, 'parking/register.html', {'form': form})
+
+
+def login_view(request):
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            login(request, user)
+            return redirect('dashboard')
+        else:
+            messages.error(request, 'Invalid credentials.')
+    else:
+        form = AuthenticationForm()
+    return render(request, 'parking/login.html', {'form': form})
+
+
+def logout_view(request):
+    logout(request)
+    return redirect('home')
+
+
+@login_required
+def dashboard(request):
+    slots = ParkingSlot.objects.all().order_by('level', 'column')
+    active_session = ParkingSession.objects.filter(user=request.user, status='active').first()
+    recent_sessions = ParkingSession.objects.filter(user=request.user).order_by('-check_in')[:5]
+    available_count = slots.filter(status='available').count()
+    occupied_count = slots.filter(status='occupied').count()
+    context = {
+        'slots': slots,
+        'active_session': active_session,
+        'recent_sessions': recent_sessions,
+        'available_count': available_count,
+        'occupied_count': occupied_count,
+        'total_slots': slots.count(),
+        'rate': settings.PARKING_RATE_UGX,
+    }
+    return render(request, 'parking/dashboard.html', context)
+
+
+@login_required
+def request_parking(request):
+    if request.method == 'POST':
+        slot_id = request.POST.get('slot_id')
+        plate = request.POST.get('vehicle_plate', '').strip().upper()
+        if not plate:
+            messages.error(request, 'Vehicle plate number is required.')
+            return redirect('dashboard')
+
+        # Check if user already has an active session
+        if ParkingSession.objects.filter(user=request.user, status='active').exists():
+            messages.error(request, 'You already have an active parking session.')
+            return redirect('dashboard')
+
+        slot = get_object_or_404(ParkingSlot, id=slot_id, status='available')
+        slot.status = 'reserved'
+        slot.save()
+
+        session = ParkingSession.objects.create(
+            user=request.user, slot=slot, vehicle_plate=plate
+        )
+
+        # Send IoT command to park the vehicle
+        cmd = send_iot_command(session, 'park')
+        messages.success(request, f'Parking slot {slot.display_name} reserved! Equipment is moving your vehicle.')
+        return redirect('session_detail', session_id=session.session_id)
+
+    slots = ParkingSlot.objects.filter(status='available')
+    return render(request, 'parking/request_parking.html', {'slots': slots})
+
+
+@login_required
+def session_detail(request, session_id):
+    session = get_object_or_404(ParkingSession, session_id=session_id, user=request.user)
+    commands = session.commands.all()
+    return render(request, 'parking/session_detail.html', {
+        'session': session, 'commands': commands
+    })
+
+
+@login_required
+def checkout(request, session_id):
+    session = get_object_or_404(ParkingSession, session_id=session_id, user=request.user, status='active')
+    if request.method == 'POST':
+        method = request.POST.get('payment_method', 'mobile_money')
+        phone = request.POST.get('phone_number', '')
+        session.check_out = timezone.now()
+        session.status = 'completed'
+        session.save()
+        slot = session.slot
+        slot.status = 'available'
+        slot.save()
+        fee = session.fee_ugx
+        payment = Payment.objects.create(
+            session=session, amount_ugx=fee, method=method,
+            phone_number=phone, status='pending'
+        )
+        # Simulate payment processing
+        result = simulate_payment(payment, method)
+        if result['success']:
+            payment.status = 'paid'
+            payment.paid_at = timezone.now()
+            payment.transaction_ref = result['ref']
+            payment.save()
+            # Generate receipt
+            receipt_num = f"RCP{str(uuid.uuid4())[:8].upper()}"
+            receipt = Receipt.objects.create(receipt_number=receipt_num, payment=payment)
+            pdf_path = generate_receipt_pdf(receipt)
+            if pdf_path:
+                receipt.pdf_file = pdf_path
+                receipt.save()
+            # Send IoT retrieve command
+            send_iot_command(session, 'retrieve')
+            messages.success(request, f'Payment of UGX {fee:,} confirmed! Receipt #{receipt_num}. Vehicle retrieval in progress.')
+            return redirect('receipt_detail', receipt_number=receipt_num)
+        else:
+            messages.error(request, 'Payment failed. Please try again.')
+    fee = session.fee_ugx
+    methods = Payment.METHOD_CHOICES
+    return render(request, 'parking/checkout.html', {'session': session, 'fee': fee, 'methods': methods})
+
+
+@login_required
+def receipt_detail(request, receipt_number):
+    receipt = get_object_or_404(Receipt, receipt_number=receipt_number,
+                                 payment__session__user=request.user)
+    return render(request, 'parking/receipt_detail.html', {'receipt': receipt})
+
+
+@login_required
+def download_receipt(request, receipt_number):
+    receipt = get_object_or_404(Receipt, receipt_number=receipt_number,
+                                 payment__session__user=request.user)
+    if receipt.pdf_file:
+        with open(receipt.pdf_file.path, 'rb') as f:
+            response = HttpResponse(f.read(), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="receipt_{receipt_number}.pdf"'
+            return response
+    return redirect('receipt_detail', receipt_number=receipt_number)
+
+
+@login_required
+def my_sessions(request):
+    sessions = ParkingSession.objects.filter(user=request.user).order_by('-check_in')
+    return render(request, 'parking/my_sessions.html', {'sessions': sessions})
+
+
+# API endpoints for real-time slot status
+@login_required
+def api_slots_status(request):
+    slots = ParkingSlot.objects.all().values('id', 'slot_number', 'level', 'column', 'status')
+    return JsonResponse({'slots': list(slots)})
+
+
+@csrf_exempt
+def api_iot_callback(request):
+    """Endpoint called by IoT device to report status changes"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            cmd_id = data.get('command_id')
+            status = data.get('status')
+            slot_id = data.get('slot_id')
+            slot_status = data.get('slot_status')
+            if cmd_id:
+                IoTCommand.objects.filter(id=cmd_id).update(
+                    status=status, response=data
+                )
+            if slot_id and slot_status:
+                ParkingSlot.objects.filter(id=slot_id).update(status=slot_status)
+            return JsonResponse({'ok': True})
+        except Exception as e:
+            return JsonResponse({'ok': False, 'error': str(e)}, status=400)
+    return JsonResponse({'ok': False}, status=405)
+
+# Patch: ensure checkout passes methods
+from parking.models import Payment as _Payment
+_METHODS = _Payment.METHOD_CHOICES

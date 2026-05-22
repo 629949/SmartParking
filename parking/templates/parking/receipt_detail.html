@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Receipt {{ receipt.receipt_number }} — SmartPark{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-6">
+<a href="{% url 'dashboard' %}" class="btn btn-outline-light btn-sm mb-3"><i class="bi bi-arrow-left me-1"></i>Dashboard</a>
+<div class="card">
+  <div class="card-header text-center py-3">
+    <div style="font-size:2.5rem;color:var(--sp-green);"><i class="bi bi-check-circle-fill"></i></div>
+    <h5 class="mt-2 mb-0">Payment Confirmed</h5>
+    <div class="text-muted small">Receipt #{{ receipt.receipt_number }}</div>
+  </div>
+  <div class="card-body px-4">
+    <table class="table table-sm mb-3">
+      <tbody>
+        <tr><td class="text-muted">Date</td><td class="text-end">{{ receipt.issued_at|date:"d M Y H:i" }}</td></tr>
+        <tr><td class="text-muted">Slot</td><td class="text-end fw-bold">{{ receipt.payment.session.slot.display_name }}</td></tr>
+        <tr><td class="text-muted">Vehicle</td><td class="text-end"><code>{{ receipt.payment.session.vehicle_plate }}</code></td></tr>
+        <tr><td class="text-muted">Check-in</td><td class="text-end">{{ receipt.payment.session.check_in|date:"H:i" }}</td></tr>
+        <tr><td class="text-muted">Check-out</td><td class="text-end">{{ receipt.payment.session.check_out|date:"H:i" }}</td></tr>
+        <tr><td class="text-muted">Duration</td><td class="text-end">{{ receipt.payment.session.duration_minutes }} min</td></tr>
+        <tr><td class="text-muted">Method</td><td class="text-end">{{ receipt.payment.get_method_display }}</td></tr>
+        <tr><td class="text-muted">Transaction Ref</td><td class="text-end text-muted small">{{ receipt.payment.transaction_ref }}</td></tr>
+      </tbody>
+    </table>
+    <div class="p-3 rounded text-center mb-3" style="background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.2);">
+      <div class="text-muted small mb-1">Amount Paid</div>
+      <div style="font-size:2rem;font-weight:800;color:var(--sp-green);">UGX {{ receipt.payment.amount_ugx|floatformat:0 }}</div>
+    </div>
+    <div class="row g-2">
+      {% if receipt.pdf_file %}
+      <div class="col-6">
+        <a href="{% url 'download_receipt' receipt.receipt_number %}" class="btn btn-outline-light w-100 btn-sm">
+          <i class="bi bi-download me-1"></i>Download PDF
+        </a>
+      </div>
+      {% endif %}
+      <div class="col-{% if receipt.pdf_file %}6{% else %}12{% endif %}">
+        <a href="{% url 'request_parking' %}" class="btn btn-primary w-100 btn-sm">
+          <i class="bi bi-plus-circle me-1"></i>Park Again
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}

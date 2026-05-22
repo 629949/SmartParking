@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}SmartPark — Automated Parking Kampala{% endblock %}
+{% block extra_css %}
+<style>
+.hero{padding:5rem 0 4rem;text-align:center;}
+.hero h1{font-size:3.5rem;font-weight:800;letter-spacing:-2px;line-height:1.1;background:linear-gradient(135deg,#58a6ff,#3fb950);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.hero p{font-size:1.15rem;color:var(--sp-muted);max-width:520px;margin:1rem auto 2rem;}
+.feature-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:1rem;}
+.feature-card{padding:1.5rem;border-radius:12px;border:1px solid var(--sp-border);background:var(--sp-card);height:100%;}
+.grid-preview{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:200px;margin:0 auto;}
+.preview-slot{border-radius:6px;height:32px;animation:statusFlicker 4s infinite;}
+.preview-slot.av{background:rgba(63,185,80,.2);border:1px solid rgba(63,185,80,.4);}
+.preview-slot.oc{background:rgba(248,81,73,.2);border:1px solid rgba(248,81,73,.4);}
+@keyframes statusFlicker{0%,90%,100%{opacity:1}92%,98%{opacity:.4}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="hero">
+  <div class="mb-3"><span class="live-dot me-2"></span><small class="text-muted">System Online — Kampala</small></div>
+  <h1>Automated Parking,<br>Simplified.</h1>
+  <p>Reserve a slot, drive in, and our IoT system handles the rest. Time-based billing, instant receipts, full automation.</p>
+  <a href="{% url 'register' %}" class="btn btn-primary btn-lg me-2 px-4">Get Started</a>
+  <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg px-4">Sign In</a>
+</div>
+
+<div class="row g-4 mt-2">
+  <div class="col-md-4">
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(88,166,255,.15);color:var(--sp-accent);"><i class="bi bi-grid-3x3-gap"></i></div>
+      <h5 class="fw-600">9-Slot Grid</h5>
+      <p class="text-muted small mb-0">3 levels × 3 columns. Real-time availability shown on a live dashboard updated via WebSocket.</p>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(63,185,80,.15);color:var(--sp-green);"><i class="bi bi-cpu"></i></div>
+      <h5>IoT Automation</h5>
+      <p class="text-muted small mb-0">Arduino-controlled lead screws and pulley system moves your vehicle automatically to its assigned slot.</p>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(210,153,34,.15);color:var(--sp-amber);"><i class="bi bi-receipt"></i></div>
+      <h5>Time-Based Billing</h5>
+      <p class="text-muted small mb-0">UGX 2,000/hr. Pay via Mobile Money or cash. PDF receipts generated and emailed instantly.</p>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-5 align-items-center">
+  <div class="col-md-6">
+    <p class="section-title">Live Slot Preview</p>
+    <div style="background:var(--sp-card);border:1px solid var(--sp-border);border-radius:12px;padding:1.5rem;">
+      <div class="mb-3">
+        {% for level in "123" %}
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <small class="text-muted" style="width:55px;">Level {{ level }}</small>
+          <div class="flex-grow-1 d-flex gap-2">
+            <div class="preview-slot av flex-fill"></div>
+            <div class="preview-slot {% if level == '2' %}oc{% else %}av{% endif %} flex-fill" style="animation-delay:.5s"></div>
+            <div class="preview-slot {% if level == '1' %}oc{% elif level == '3' %}av{% else %}av{% endif %} flex-fill" style="animation-delay:1s"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="d-flex gap-3 mt-2">
+        <span class="badge-available small px-2 py-1 rounded">Available</span>
+        <span class="badge-occupied small px-2 py-1 rounded">Occupied</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 mt-4 mt-md-0 ps-md-5">
+    <p class="section-title">How it works</p>
+    {% for step in "1234" %}
+    <div class="d-flex gap-3 mb-3">
+      <div class="timeline-dot mt-1"></div>
+      <div>
+        <div class="fw-600 small">
+          {% if step == "1" %}Register & choose a slot{% elif step == "2" %}Drive to entry point{% elif step == "3" %}System parks your vehicle automatically{% else %}Pay and retrieve when ready{% endif %}
+        </div>
+        <div class="text-muted" style="font-size:.82rem;">
+          {% if step == "1" %}Pick any available slot on the live map.
+          {% elif step == "2" %}Pull up to the lift platform at the entrance.
+          {% elif step == "3" %}Arduino moves your car to the assigned level and column.
+          {% else %}Time is logged, fee calculated, receipt issued — vehicle returned to exit.{% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

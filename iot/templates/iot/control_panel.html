@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}IoT Control Panel — SmartPark{% endblock %}
+{% block extra_css %}
+<style>
+.cmd-row td { font-size:.82rem; }
+.status-queued { color: var(--sp-muted); }
+.status-sent { color: var(--sp-amber); }
+.status-ack { color: var(--sp-accent); }
+.status-done { color: var(--sp-green); }
+.status-error { color: var(--sp-red); }
+.device-card { border-radius: 10px; border: 1px solid var(--sp-border); padding: 1rem; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-0">IoT Control Panel</h4>
+    <small class="text-muted"><span class="live-dot me-1"></span>Staff access only</small>
+  </div>
+  <a href="{% url 'dashboard' %}" class="btn btn-outline-light btn-sm">← Dashboard</a>
+</div>
+
+<!-- System overview -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="device-card">
+      <div class="section-title">Arduino Controller</div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="live-dot"></span>
+        <span class="fw-bold">SmartPark-MCU-01</span>
+      </div>
+      <div class="text-muted small mt-1">MQTT: localhost:1883</div>
+      <div class="text-muted small">Motors: X×3 + Y×1 active</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="device-card">
+      <div class="section-title">X-Axis Motors</div>
+      <div class="fw-bold">M1 / M2 / M3</div>
+      <div class="text-muted small mt-1">NEMA 17 — Lead screw per level</div>
+      <div class="text-muted small">Step resolution: 200 steps/rev</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="device-card">
+      <div class="section-title">Y-Axis Motor</div>
+      <div class="fw-bold">M_Y — Vertical Lift</div>
+      <div class="text-muted small mt-1">Pulley + cable system</div>
+      <div class="text-muted small">Positions: L1 / L2 / L3</div>
+    </div>
+  </div>
+</div>
+
+<!-- Slot status grid -->
+<div class="card mb-4">
+  <div class="card-header py-2 px-3"><span class="fw-600 small">Slot Status Grid</span></div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Slot</th><th>Level</th><th>Column</th><th>Status</th><th>Last Updated</th></tr></thead>
+        <tbody>
+        {% for slot in slots %}
+        <tr>
+          <td class="fw-bold">{{ slot.display_name }}</td>
+          <td>{{ slot.level }}</td>
+          <td>{{ slot.column }}</td>
+          <td>
+            <span class="badge-{{ slot.status }}">{{ slot.status }}</span>
+          </td>
+          <td class="text-muted small">{{ slot.last_updated|date:"H:i:s" }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Command log -->
+<div class="card">
+  <div class="card-header py-2 px-3 d-flex justify-content-between">
+    <span class="fw-600 small">IoT Command Log</span>
+    <small class="text-muted">Last 20 commands</small>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead><tr><th>#</th><th>Command</th><th>Level</th><th>Col</th><th>Status</th><th>Session</th><th>Time</th><th>Response</th></tr></thead>
+        <tbody>
+        {% for cmd in commands %}
+        <tr class="cmd-row">
+          <td class="text-muted">{{ cmd.id }}</td>
+          <td><code>{{ cmd.command }}</code></td>
+          <td>{{ cmd.target_level }}</td>
+          <td>{{ cmd.target_column }}</td>
+          <td class="status-{{ cmd.status }}">{{ cmd.status }}</td>
+          <td class="text-muted">{% if cmd.session %}{{ cmd.session.session_id|slice:":8" }}…{% else %}—{% endif %}</td>
+          <td class="text-muted">{{ cmd.created_at|date:"H:i:s" }}</td>
+          <td class="text-muted small">
+            {% if cmd.response.simulated %}⚡ Simulated{% elif cmd.response %}✓{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-muted text-center p-3">No commands yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MQTT Arduino code reference -->
+<div class="card mt-4">
+  <div class="card-header py-2 px-3"><span class="fw-600 small">Arduino Integration — MQTT Payload Format</span></div>
+  <div class="card-body">
+    <p class="text-muted small mb-2">Subscribe to topic: <code>smartpark/commands/&lt;level&gt;/&lt;column&gt;</code></p>
+    <pre style="background:#0d1117;border:1px solid var(--sp-border);border-radius:8px;padding:1rem;font-size:.78rem;color:var(--sp-text);overflow-x:auto;">{
+  "cmd_id": 42,
+  "action": "park",         // "park" | "retrieve" | "home" | "status"
+  "level": 2,               // 1–3  (Y-axis target)
+  "column": 1,              // 1–3  (X-axis target: A/B/C)
+  "slot": "L2-A",
+  "plate": "UAA 123B",
+  "session_id": "uuid-here"
+}
+
+// After completing motion, POST to:
+// POST /api/iot/callback/
+// { "command_id": 42, "status": "done", "slot_id": 5, "slot_status": "occupied" }</pre>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}My Sessions — SmartPark{% endblock %}
+{% block content %}
+<h4 class="fw-bold mb-4">My Parking Sessions</h4>
+<div class="card">
+  <div class="card-body p-0">
+    {% if sessions %}
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead><tr><th>Slot</th><th>Vehicle</th><th>Check-in</th><th>Check-out</th><th>Duration</th><th>Fee</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        {% for s in sessions %}
+        <tr>
+          <td class="fw-bold" style="color:var(--sp-accent)">{{ s.slot.display_name }}</td>
+          <td><code>{{ s.vehicle_plate }}</code></td>
+          <td>{{ s.check_in|date:"d M H:i" }}</td>
+          <td>{% if s.check_out %}{{ s.check_out|date:"H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td>{{ s.duration_minutes }} min</td>
+          <td>UGX {{ s.fee_ugx|floatformat:0 }}</td>
+          <td>
+            {% if s.status == 'active' %}<span class="badge-available">Active</span>
+            {% elif s.status == 'completed' %}<span style="color:var(--sp-green);font-size:.8rem;">✓ Done</span>
+            {% else %}<span class="text-muted small">{{ s.status }}</span>{% endif %}
+          </td>
+          <td>
+            {% if s.status == 'active' %}
+            <a href="{% url 'checkout' s.session_id %}" class="btn btn-success btn-sm">Check Out</a>
+            {% else %}
+            <a href="{% url 'session_detail' s.session_id %}" class="btn btn-outline-light btn-sm">View</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="p-4 text-center text-muted">
+      <i class="bi bi-clock-history" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>
+      No parking sessions yet. <a href="{% url 'request_parking' %}">Park your first vehicle</a>.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

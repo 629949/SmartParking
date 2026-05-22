@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Checkout — SmartPark{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-6">
+<a href="{% url 'session_detail' session.session_id %}" class="btn btn-outline-light btn-sm mb-3"><i class="bi bi-arrow-left me-1"></i>Back</a>
+<div class="card mb-3">
+  <div class="card-header py-2 px-3"><span class="fw-bold">Checkout Summary</span></div>
+  <div class="card-body">
+    <div class="row g-3 mb-3">
+      <div class="col-6"><div class="section-title">Slot</div><div class="fw-bold" style="color:var(--sp-accent)">{{ session.slot.display_name }}</div></div>
+      <div class="col-6"><div class="section-title">Vehicle</div><code>{{ session.vehicle_plate }}</code></div>
+      <div class="col-6"><div class="section-title">Check-in</div><div>{{ session.check_in|date:"H:i" }}</div></div>
+      <div class="col-6"><div class="section-title">Duration</div><div>{{ session.duration_minutes }} min</div></div>
+    </div>
+    <div class="p-3 rounded mb-0" style="background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.2);">
+      <div class="section-title mb-1">Total Amount Due</div>
+      <div style="font-size:2.2rem;font-weight:800;color:var(--sp-green);">UGX {{ fee|floatformat:0 }}</div>
+      <small class="text-muted">UGX 2,000/hr × {{ session.duration_minutes }} min</small>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header py-2 px-3"><span class="fw-bold">Payment Method</span></div>
+  <div class="card-body">
+    <form method="post">
+    {% csrf_token %}
+    <div class="row g-2 mb-3" id="methodSelect">
+      {% for val, label in methods %}
+      <div class="col-12">
+        <label class="d-flex align-items-center gap-3 p-3 rounded" style="border:1px solid var(--sp-border);cursor:pointer;transition:.15s;" onmouseover="this.style.borderColor='var(--sp-accent)'" onmouseout="updateBorder(this)">
+          <input type="radio" name="payment_method" value="{{ val }}" {% if forloop.first %}checked{% endif %} onchange="togglePhone('{{ val }}')">
+          <span>
+            {% if val == 'mobile_money' %}<i class="bi bi-phone me-2" style="color:var(--sp-amber)"></i>{% elif val == 'card' %}<i class="bi bi-credit-card me-2" style="color:var(--sp-accent)"></i>{% else %}<i class="bi bi-cash-coin me-2" style="color:var(--sp-green)"></i>{% endif %}
+            {{ label }}
+          </span>
+        </label>
+      </div>
+      {% endfor %}
+    </div>
+    <div id="phoneField">
+      <label class="form-label small text-muted">Mobile Money Number</label>
+      <input type="tel" name="phone_number" class="form-control mb-3" placeholder="e.g. 0772 123456">
+    </div>
+    <button type="submit" class="btn btn-success w-100 py-2 fw-bold">
+      <i class="bi bi-lock me-2"></i>Pay UGX {{ fee|floatformat:0 }} & Retrieve Vehicle
+    </button>
+    </form>
+    <div class="mt-3 text-center">
+      <small class="text-muted"><i class="bi bi-shield-check me-1"></i>Payment processed securely. Vehicle will be retrieved automatically after confirmation.</small>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function togglePhone(val) {
+  document.getElementById('phoneField').style.display = val === 'mobile_money' ? '' : 'none';
+}
+function updateBorder(el) {
+  const radio = el.querySelector('input[type=radio]');
+  el.style.borderColor = radio.checked ? 'var(--sp-accent)' : 'var(--sp-border)';
+}
+document.querySelectorAll('input[name=payment_method]').forEach(r => {
+  r.addEventListener('change', () => {
+    document.querySelectorAll('#methodSelect label').forEach(l => updateBorder(l));
+  });
+});
+</script>
+{% endblock %}

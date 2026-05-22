@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — SmartPark{% endblock %}
+{% block extra_css %}
+<style>
+.level-label{font-size:.7rem;color:var(--sp-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem;}
+.col-label{font-size:.65rem;color:var(--sp-muted);text-align:center;margin-bottom:.25rem;}
+.slot-name{font-weight:700;font-size:.85rem;}
+.slot-status-text{font-size:.62rem;margin-top:2px;}
+.active-session-banner{background:linear-gradient(135deg,rgba(88,166,255,.12),rgba(63,185,80,.08));border:1px solid rgba(88,166,255,.25);border-radius:12px;padding:1rem 1.25rem;}
+</style>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="mb-0 fw-bold">Dashboard</h4>
+    <small class="text-muted"><span class="live-dot me-1"></span>Live — updates every 5s</small>
+  </div>
+  <a href="{% url 'request_parking' %}" class="btn btn-primary"><i class="bi bi-plus-circle me-2"></i>Park Vehicle</a>
+</div>
+
+<!-- Stats row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="section-title">Available</div>
+      <div class="stat-number" style="color:var(--sp-green);" id="stat-available">{{ available_count }}</div>
+      <div class="text-muted small">of {{ total_slots }} slots</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="section-title">Occupied</div>
+      <div class="stat-number" style="color:var(--sp-red);" id="stat-occupied">{{ occupied_count }}</div>
+      <div class="text-muted small">vehicles parked</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="section-title">Rate</div>
+      <div class="stat-number" style="color:var(--sp-amber);">{{ rate|floatformat:0 }}</div>
+      <div class="text-muted small">UGX per hour</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="section-title">Your Sessions</div>
+      <div class="stat-number" style="color:var(--sp-accent);">{{ recent_sessions|length }}</div>
+      <div class="text-muted small"><a href="{% url 'my_sessions' %}" class="text-muted">view all</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- Active session banner -->
+{% if active_session %}
+<div class="active-session-banner mb-4">
+  <div class="d-flex justify-content-between align-items-start">
+    <div>
+      <div class="section-title mb-1">Active Session</div>
+      <div class="fw-bold">{{ active_session.slot.display_name }} — {{ active_session.vehicle_plate }}</div>
+      <div class="text-muted small">Since {{ active_session.check_in|date:"H:i" }} · {{ active_session.duration_minutes }} min · Est. UGX {{ active_session.fee_ugx|floatformat:0 }}</div>
+    </div>
+    <a href="{% url 'checkout' active_session.session_id %}" class="btn btn-sm btn-success ms-3">
+      <i class="bi bi-box-arrow-right me-1"></i>Check Out
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<!-- Slot grid -->
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center py-2 px-3">
+    <span class="fw-600 small">Parking Grid</span>
+    <div class="d-flex gap-3 align-items-center">
+      <span class="badge-available small">Available</span>
+      <span class="badge-occupied small">Occupied</span>
+      <span class="badge-reserved small">Reserved</span>
+    </div>
+  </div>
+  <div class="card-body p-3">
+    <!-- Column headers -->
+    <div class="row mb-1 px-2">
+      <div class="col-2"></div>
+      <div class="col-10">
+        <div class="row g-2">
+          <div class="col-4 col-label">Col A</div>
+          <div class="col-4 col-label">Col B</div>
+          <div class="col-4 col-label">Col C</div>
+        </div>
+      </div>
+    </div>
+    {% for level in "321" %}
+    <div class="row align-items-center mb-2 px-2">
+      <div class="col-2">
+        <div class="level-label">L{{ level }}</div>
+      </div>
+      <div class="col-10">
+        <div class="row g-2" id="level-{{ level }}">
+          {% for slot in slots %}
+            {% if slot.level|stringformat:"s" == level %}
+            <div class="col-4">
+              <div class="slot-card {{ slot.status }}" 
+                   id="slot-{{ slot.id }}"
+                   data-slot-id="{{ slot.id }}"
+                   {% if slot.status == 'available' %}
+                   onclick="window.location.href='{% url 'request_parking' %}?slot={{ slot.id }}'"
+                   title="Click to park here"
+                   {% endif %}>
+                <div style="font-size:1.3rem;">
+                  {% if slot.status == 'available' %}<i class="bi bi-p-circle text-success"></i>
+                  {% elif slot.status == 'occupied' %}<i class="bi bi-car-front" style="color:var(--sp-red)"></i>
+                  {% elif slot.status == 'reserved' %}<i class="bi bi-hourglass-split" style="color:var(--sp-amber)"></i>
+                  {% else %}<i class="bi bi-tools" style="color:var(--sp-muted)"></i>{% endif %}
+                </div>
+                <div class="slot-name">{{ slot.display_name }}</div>
+                <div class="slot-status-text" style="color:var(--sp-muted)">{{ slot.status }}</div>
+              </div>
+            </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Recent sessions -->
+{% if recent_sessions %}
+<div class="card">
+  <div class="card-header py-2 px-3 d-flex justify-content-between">
+    <span class="fw-600 small">Recent Sessions</span>
+    <a href="{% url 'my_sessions' %}" class="text-muted small">View all</a>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Slot</th><th>Plate</th><th>Check-in</th><th>Duration</th><th>Fee</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for s in recent_sessions %}
+        <tr>
+          <td>{{ s.slot.display_name }}</td>
+          <td><code>{{ s.vehicle_plate }}</code></td>
+          <td>{{ s.check_in|date:"d M H:i" }}</td>
+          <td>{{ s.duration_minutes }} min</td>
+          <td>UGX {{ s.fee_ugx|floatformat:0 }}</td>
+          <td>
+            {% if s.status == 'active' %}<span class="badge-available">Active</span>
+            {% elif s.status == 'completed' %}<span class="badge-reserved" style="color:#7ee787;background:rgba(63,185,80,.1)">Done</span>
+            {% else %}<span class="text-muted small">{{ s.status }}</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Live slot status refresh via polling (WebSocket upgrade path available)
+function refreshSlots() {
+  fetch('/api/slots/')
+    .then(r => r.json())
+    .then(data => {
+      data.slots.forEach(slot => {
+        const el = document.getElementById('slot-' + slot.id);
+        if (!el) return;
+        el.className = 'slot-card ' + slot.status;
+        const statusEl = el.querySelector('.slot-status-text');
+        if (statusEl) statusEl.textContent = slot.status;
+        if (slot.status === 'available') {
+          el.onclick = () => window.location.href = '/park/?slot=' + slot.id;
+          el.title = 'Click to park here';
+        } else {
+          el.onclick = null;
+          el.title = '';
+        }
+      });
+      // Update stats
+      const avail = data.slots.filter(s => s.status === 'available').length;
+      const occ = data.slots.filter(s => s.status === 'occupied').length;
+      const statA = document.getElementById('stat-available');
+      const statO = document.getElementById('stat-occupied');
+      if (statA) statA.textContent = avail;
+      if (statO) statO.textContent = occ;
+    })
+    .catch(() => {});
+}
+setInterval(refreshSlots, 5000);
+</script>
+{% endblock %}

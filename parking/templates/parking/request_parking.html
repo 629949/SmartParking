@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}Request Parking — SmartPark{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-8">
+<div class="d-flex align-items-center mb-4">
+  <a href="{% url 'dashboard' %}" class="btn btn-outline-light btn-sm me-3"><i class="bi bi-arrow-left"></i></a>
+  <h4 class="mb-0 fw-bold">Request a Parking Slot</h4>
+</div>
+
+{% if not slots %}
+<div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2"></i>No slots available at the moment. Please check back shortly.</div>
+{% else %}
+
+<form method="post" id="parkForm">
+{% csrf_token %}
+<input type="hidden" name="slot_id" id="selected-slot-id">
+
+<div class="card mb-4">
+  <div class="card-header py-2 px-3"><span class="fw-600 small">Select a Slot</span></div>
+  <div class="card-body p-3">
+    {% for level in "321" %}
+    <div class="mb-3">
+      <div class="section-title">Level {{ level }}</div>
+      <div class="row g-2">
+        {% for slot in slots %}
+        {% if slot.level|stringformat:"s" == level %}
+        <div class="col-4 col-md-2">
+          <div class="slot-card available" onclick="selectSlot('{{ slot.id }}', '{{ slot.display_name }}')" id="sel-{{ slot.id }}">
+            <i class="bi bi-p-circle text-success" style="font-size:1.3rem;"></i>
+            <div class="slot-name">{{ slot.display_name }}</div>
+            <div class="slot-status-text text-muted">available</div>
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card mb-4" id="detailsCard" style="display:none!important;">
+  <div class="card-header py-2 px-3"><span class="fw-600 small">Vehicle Details</span></div>
+  <div class="card-body p-3">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label small text-muted">Selected Slot</label>
+        <div class="form-control" id="slot-display" style="background:#0d1117;cursor:default;color:var(--sp-accent);font-weight:600;"></div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label small text-muted">Vehicle Plate Number <span class="text-danger">*</span></label>
+        <input type="text" name="vehicle_plate" class="form-control" placeholder="e.g. UAA 123B" required autocomplete="off" style="text-transform:uppercase;">
+      </div>
+    </div>
+    <div class="mt-3 p-3 rounded" style="background:rgba(88,166,255,.05);border:1px solid rgba(88,166,255,.15);">
+      <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Rate: <strong style="color:var(--sp-accent);">UGX 2,000 / hour</strong>. Billing starts when your vehicle is parked. Pay on checkout.</small>
+    </div>
+    <div class="mt-3">
+      <button type="submit" class="btn btn-primary w-100 py-2"><i class="bi bi-cpu me-2"></i>Confirm & Automate Parking</button>
+    </div>
+  </div>
+</div>
+
+</form>
+{% endif %}
+</div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+let selectedId = null;
+function selectSlot(id, name) {
+  if (selectedId) {
+    const prev = document.getElementById('sel-' + selectedId);
+    if (prev) { prev.style.borderColor = ''; prev.style.background = ''; }
+  }
+  selectedId = id;
+  const el = document.getElementById('sel-' + id);
+  if (el) { el.style.borderColor = 'var(--sp-accent)'; el.style.background = 'rgba(88,166,255,.15)'; }
+  document.getElementById('selected-slot-id').value = id;
+  document.getElementById('slot-display').textContent = name;
+  const card = document.getElementById('detailsCard');
+  card.style.display = '';
+  card.style.setProperty('display', 'block', 'important');
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+// Pre-select from URL param
+const urlParams = new URLSearchParams(window.location.search);
+const preSlot = urlParams.get('slot');
+if (preSlot) {
+  const el = document.getElementById('sel-' + preSlot);
+  if (el) { const name = el.querySelector('.slot-name').textContent; selectSlot(preSlot, name); }
+}
+</script>
+{% endblock %}

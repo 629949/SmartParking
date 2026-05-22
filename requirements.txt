@@ -1,0 +1,9 @@
+Django>=4.2
+djangorestframework
+channels
+channels-redis
+django-crispy-forms
+crispy-bootstrap5
+Pillow
+reportlab
+paho-mqtt
