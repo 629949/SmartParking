@@ -100,3 +100,8 @@ LOGOUT_REDIRECT_URL = '/'
 PARKING_RATE_UGX = 2000
 IOT_BROKER_HOST = os.environ.get('IOT_BROKER_HOST', 'localhost')
 IOT_BROKER_PORT = int(os.environ.get('IOT_BROKER_PORT', 1883))
+
+
+# ESP32-S3 Configuration
+ESP32_DEVICE_ID = os.environ.get('ESP32_DEVICE_ID', 'smartpark-esp32-01')
+ESP32_DEVICE_NAME = os.environ.get('ESP32_DEVICE_NAME', 'SmartPark ESP32-S3 Controller')

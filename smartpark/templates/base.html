@@ -8,9 +8,15 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
   <style>
     :root {
-      --sp-dark:#0d1117;--sp-card:#161b22;--sp-border:#30363d;
-      --sp-accent:#58a6ff;--sp-green:#3fb950;--sp-red:#f85149;
-      --sp-amber:#d29922;--sp-text:#c9d1d9;--sp-muted:#8b949e;
+      --sp-dark: #0b1220;
+      --sp-card: #0f1622;
+      --sp-border: #29343b;
+      --sp-accent: #7fb8ff;
+      --sp-green: #3fc160;
+      --sp-red: #ff6b6b;
+      --sp-amber: #f0b84b;
+      --sp-text: #e6f0fa;
+      --sp-muted: #b9c6d2;
     }
     body{background:var(--sp-dark);color:var(--sp-text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
     .navbar{background:var(--sp-card)!important;border-bottom:1px solid var(--sp-border);}
@@ -18,8 +24,8 @@
     .nav-link{color:var(--sp-text)!important;}.nav-link:hover{color:var(--sp-accent)!important;}
     .card{background:var(--sp-card);border:1px solid var(--sp-border);border-radius:12px;}
     .card-header{background:transparent;border-bottom:1px solid var(--sp-border);}
-    .btn-primary{background:var(--sp-accent);border-color:var(--sp-accent);color:#000;font-weight:600;}
-    .btn-primary:hover{background:#79b8ff;border-color:#79b8ff;color:#000;}
+    .btn-primary{background:var(--sp-accent);border-color:var(--sp-accent);color:#061826;font-weight:600;}
+    .btn-primary:hover{background:#a7d2ff;border-color:#a7d2ff;color:#061826;}
     .btn-success{background:var(--sp-green);border-color:var(--sp-green);color:#000;font-weight:600;}
     .btn-outline-light{border-color:var(--sp-border);color:var(--sp-text);}
     .btn-outline-light:hover{background:var(--sp-border);color:var(--sp-text);}
@@ -42,6 +48,20 @@
     .alert{border-radius:10px;}
     .timeline-dot{width:10px;height:10px;border-radius:50%;background:var(--sp-accent);display:inline-block;flex-shrink:0;}
     footer{border-top:1px solid var(--sp-border);margin-top:4rem;padding:1.5rem 0;color:var(--sp-muted);font-size:.85rem;}
+    /* Form & Text Colors - White */
+    label,.form-label{color:#ffffff!important;}
+    .form-control,.form-select{color:#ffffff!important;}
+    .form-control::placeholder{color:#ffffff;opacity:.7;}
+    textarea.form-control{color:#ffffff!important;}
+    .input-group-text{color:#ffffff;background:var(--sp-card);border-color:var(--sp-border);}
+    h1,h2,h3,h4,h5,h6{color:#ffffff!important;}
+    .text-muted{color:#b9c6d2!important;}
+    small,.small{color:#ffffff;}
+    .card-title{color:#ffffff!important;}
+    .card-text{color:#ffffff!important;}
+    .paragraph,p{color:#ffffff;}
+    .badge{color:#ffffff;background:var(--sp-accent);}
+    .alert-info,.alert-success,.alert-warning,.alert-danger{color:#ffffff;}
   </style>
   {% block extra_css %}{% endblock %}
 </head>

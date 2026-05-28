@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Checkout — SmartPark{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-6 col-lg-5">
+    <div class="card">
+      <div class="card-body">
+        <h4 class="fw-bold mb-3">Checkout & Retrieve Vehicle</h4>
+        <div class="mb-3 p-3 bg-light rounded">
+          <p class="mb-1"><strong>Vehicle:</strong> {{ session.vehicle_plate }}</p>
+          <p class="mb-1"><strong>Slot:</strong> {{ session.slot.display_name }}</p>
+          <p class="mb-1"><strong>Check-in:</strong> {{ session.check_in }}</p>
+          <p class="mb-1"><strong>Duration:</strong> {{ session.duration_minutes }} minutes</p>
+          <hr>
+          <p class="mb-0"><strong>Fee:</strong> <span class="text-success">UGX {{ fee }}</span></p>
+        </div>
+        <form method="post" action="{% url 'guest_checkout' %}">
+          {% csrf_token %}
+          <input type="hidden" name="ref" value="{{ ref }}">
+          <div class="mb-3">
+            <label class="form-label small text-muted">Payment Method</label>
+            <select name="payment_method" class="form-select" required>
+              {% for val, label in methods %}
+              <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% if methods|length > 0 %}
+          <div class="mb-3">
+            <label class="form-label small text-muted">Phone Number (if applicable)</label>
+            <input type="tel" name="phone_number" class="form-control" placeholder="+256...">
+          </div>
+          {% endif %}
+          <button type="submit" class="btn btn-primary w-100">Pay & Retrieve</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

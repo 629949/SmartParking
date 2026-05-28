@@ -1,0 +1,241 @@
+================================================================================
+                 ESP32-S3 INTEGRATION - CHANGES SUMMARY
+================================================================================
+
+COMPLETED CHANGES:
+✅ Replaced all Arduino references with ESP32-S3
+✅ Updated Django configuration to support ESP32-S3 device settings
+✅ Modified UI to display ESP32-S3 Controller information
+✅ Maintained MQTT protocol (perfect for ESP32-S3 WiFi connectivity)
+✅ Created complete Arduino firmware for ESP32-S3
+✅ Added comprehensive setup documentation
+✅ Provided environment configuration template
+
+================================================================================
+                           FILES MODIFIED
+================================================================================
+
+1. smartpark/settings.py
+   - Added ESP32_DEVICE_ID configuration
+   - Added ESP32_DEVICE_NAME configuration
+   - MQTT broker settings remain unchanged
+
+2. iot/templates/iot/control_panel.html
+   - "Arduino Controller" → "ESP32-S3 Controller"
+   - "SmartPark-MCU-01" → "SmartPark-ESP32-01"
+   - "Arduino Integration" → "ESP32-S3 Integration"
+   - Updated MQTT documentation reference
+
+3. parking/templates/parking/home.html
+   - "Arduino moves your car" → "ESP32-S3 moves your car"
+
+4. parking/utils.py
+   - Updated _mqtt_publish docstring to reference ESP32-S3
+   - Added comment about ESP32-S3 MQTT subscription
+
+================================================================================
+                           FILES CREATED
+================================================================================
+
+1. ESP32_S3_MQTT_Controller.ino (8.7 KB)
+   - Complete Arduino sketch for ESP32-S3
+   - WiFi + MQTT connectivity
+   - Motor control for X-axis (3 motors) and Y-axis (1 motor)
+   - Command parsing and execution
+   - Status reporting back to Django
+   - Includes troubleshooting comments
+
+2. ESP32_SETUP_GUIDE.md (7.0 KB)
+   - Hardware requirements and connections
+   - Step-by-step Arduino IDE setup
+   - Motor pin configuration
+   - MQTT broker installation
+   - Testing checklist and troubleshooting
+   - Performance tuning guide
+   - Security configuration (optional)
+
+3. ESP32_README.md (11 KB)
+   - System architecture diagram
+   - Communication protocol flow
+   - Quick start guide for Django and ESP32-S3
+   - MQTT command examples
+   - Testing instructions
+   - Performance metrics
+   - Support resources
+
+4. .env.example (890 bytes)
+   - Environment configuration template
+   - ESP32-S3 specific variables
+   - MQTT broker settings
+   - WiFi credentials placeholder
+   - Example values for easy setup
+
+================================================================================
+                        SYSTEM ARCHITECTURE
+================================================================================
+
+BEFORE:
+  Django ←MQTT→ Arduino (direct USB/serial)
+  
+AFTER:
+  Django ←MQTT→ MQTT Broker ←WiFi MQTT→ ESP32-S3
+  
+BENEFITS:
+  ✓ Wireless communication (no USB cable needed)
+  ✓ Multiple commands can be queued
+  ✓ Automatic reconnection handling
+  ✓ Scalable to multiple ESP32s
+  ✓ Built-in WiFi on ESP32-S3
+
+================================================================================
+                      NEXT STEPS FOR USER
+================================================================================
+
+1. SETUP MQTT BROKER (on your server):
+   sudo apt-get install mosquitto
+   sudo systemctl start mosquitto
+   
+2. UPLOAD FIRMWARE TO ESP32-S3:
+   - Use Arduino IDE with ESP32 board package
+   - Upload ESP32_S3_MQTT_Controller.ino
+   - Set WiFi credentials
+   - Set MQTT broker IP
+
+3. CONFIGURE ENVIRONMENT:
+   - Copy .env.example to .env
+   - Update IOT_BROKER_HOST to your server IP
+   - Update ESP32 WiFi settings
+
+4. TEST INTEGRATION:
+   - Start Django: python manage.py runserver
+   - Monitor Serial output from ESP32-S3
+   - Check IoT Control Panel: /iot/control/
+   - Send test commands: python manage.py shell
+
+5. VERIFY COMMUNICATION:
+   - ESP32-S3 should connect to WiFi
+   - ESP32-S3 should connect to MQTT broker
+   - Motors should respond to Django commands
+   - Status should return to Django
+
+================================================================================
+                     MQTT COMMUNICATION FLOW
+================================================================================
+
+PARKING A VEHICLE:
+  Django → send_iot_command()
+    ↓
+  IoT Command created (queued)
+    ↓
+  Publish to MQTT: smartpark/commands/2/1
+    {
+      "cmd_id": 42,
+      "action": "park",
+      "level": 2,
+      "column": 1,
+      "slot": "L2-A",
+      "plate": "UBB-441Q"
+    }
+    ↓
+  ESP32-S3 receives command
+    ↓
+  Motors move (X-axis to column, Y-axis to level)
+    ↓
+  ESP32-S3 publishes: smartpark/callback
+    {
+      "command_id": 42,
+      "status": "done",
+      "device_id": "smartpark-esp32-01"
+    }
+    ↓
+  Django receives callback via /api/iot/callback/
+    ↓
+  ParkingSlot status updated to "occupied"
+    ↓
+  Guest receives confirmation
+
+================================================================================
+                       MOTOR SPECIFICATIONS
+================================================================================
+
+X-AXIS (Horizontal - 3 motors):
+  - NEMA 17 Stepper Motors
+  - Lead screw with 2mm pitch
+  - GPIO Pins: 16/17 (M1), 18/19 (M2), 20/21 (M3)
+  - Direction: One motor per parking level (L1, L2, L3)
+  - Columns: A, B, C (controlled by X position)
+
+Y-AXIS (Vertical - 1 motor):
+  - NEMA 17 Stepper Motor
+  - Pulley + cable system
+  - GPIO Pins: 22 (STEP), 23 (DIR)
+  - Direction: 3 levels (L1 ground, L2 middle, L3 top)
+  - Speed: 500-2000 RPM (configurable)
+
+MOTOR DRIVERS:
+  - Recommended: DRV8825, A4988, or TB6600
+  - Power: 24V DC (separate from ESP32 logic supply)
+  - Interface: STEP + DIR signals from ESP32
+
+================================================================================
+                        CONFIGURATION VALUES
+================================================================================
+
+MQTT SETTINGS:
+  IOT_BROKER_HOST = 192.168.1.100 (or your server IP)
+  IOT_BROKER_PORT = 1883
+  
+ESP32-S3 SETTINGS:
+  ESP32_DEVICE_ID = smartpark-esp32-01
+  ESP32_DEVICE_NAME = SmartPark ESP32-S3 Controller
+  
+WiFi (in Arduino sketch):
+  SSID = YOUR_NETWORK_NAME
+  Password = YOUR_PASSWORD
+  
+MOTOR TIMING (in Arduino sketch):
+  STEP_DELAY = 1000 microseconds (≈ 1000 RPM)
+  STEPS_PER_LEVEL = 1000 steps
+  STEPS_PER_COLUMN = 500 steps
+
+================================================================================
+                          VERSION INFO
+================================================================================
+
+SmartPark Version: 1.0
+Django: 6.0.5
+ESP32-S3 Support: Added May 28, 2026
+MQTT Protocol: v3.1.1
+Arduino Core: esp32 (latest)
+
+================================================================================
+                         TESTING CHECKLIST
+================================================================================
+
+[ ] MQTT Broker installed and running
+[ ] ESP32-S3 connects to WiFi (check Serial Monitor)
+[ ] ESP32-S3 connects to MQTT broker (Serial: "MQTT connected")
+[ ] Subscribed to smartpark/commands/+/+ (Serial shows subscription)
+[ ] Django sends test command (IoT Control Panel shows "sent")
+[ ] Motors respond to command (hear/see stepper movement)
+[ ] ESP32-S3 publishes callback (smartpark/callback topic)
+[ ] Django receives callback (Command status changes to "done")
+[ ] Full guest parking flow works end-to-end
+[ ] Admin dashboard shows motor activity
+[ ] Multiple commands queue properly
+
+================================================================================
+                            SUPPORT
+================================================================================
+
+For setup help, see:
+  - ESP32_SETUP_GUIDE.md (comprehensive setup guide)
+  - ESP32_README.md (architecture and testing)
+  - ESP32_S3_MQTT_Controller.ino (firmware with comments)
+
+Resources:
+  - Espressif ESP32 Docs: https://docs.espressif.com/
+  - MQTT Protocol: https://mqtt.org/
+  - Mosquitto Docs: https://mosquitto.org/
+
+================================================================================

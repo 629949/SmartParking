@@ -20,7 +20,9 @@
   <h1>Automated Parking,<br>Simplified.</h1>
   <p>Reserve a slot, drive in, and our IoT system handles the rest. Time-based billing, instant receipts, full automation.</p>
   <a href="{% url 'register' %}" class="btn btn-primary btn-lg me-2 px-4">Get Started</a>
-  <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg px-4">Sign In</a>
+  <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg px-4">Check In</a>
+  <a href="{% url 'guest_retrieve' %}" class="btn btn-outline-light btn-lg ms-2 px-4">Retrieve Vehicle</a>
+  <a href="{% url 'admin_login' %}" class="btn btn-outline-light btn-lg ms-2 px-4"><i class="bi bi-shield-lock"></i> Admin</a>
 </div>
 
 <div class="row g-4 mt-2">
@@ -81,7 +83,7 @@
         <div class="text-muted" style="font-size:.82rem;">
           {% if step == "1" %}Pick any available slot on the live map.
           {% elif step == "2" %}Pull up to the lift platform at the entrance.
-          {% elif step == "3" %}Arduino moves your car to the assigned level and column.
+          {% elif step == "3" %}ESP32-S3 moves your car to the assigned level and column.
           {% else %}Time is logged, fee calculated, receipt issued — vehicle returned to exit.{% endif %}
         </div>
       </div>

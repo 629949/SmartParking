@@ -44,7 +44,7 @@ def login_view(request):
             messages.error(request, 'Invalid credentials.')
     else:
         form = AuthenticationForm()
-    return render(request, 'parking/auth_login.html', {'form': form})
+    return render(request, 'parking/login.html', {'form': form})
 
 
 def logout_view(request):
@@ -233,7 +233,7 @@ from django.views.decorators.http import require_http_methods
 
 @require_http_methods(["GET","POST"])
 def guest_retrieve(request):
-    """Let a guest provide their reference to checkout."""
+    """Let a guest provide their reference to view their session."""
     if request.method == 'POST':
         ref = (request.POST.get('ref','') or '').strip().upper()
         if ref.startswith('CHK'):
@@ -248,10 +248,8 @@ def guest_retrieve(request):
         if not session:
             messages.error(request, 'No active session found for that reference.')
             return render(request, 'parking/guest_retrieve.html')
-        # redirect to guest checkout page
-        fee = session.fee_ugx
-        methods = Payment.METHOD_CHOICES
-        return render(request, 'parking/guest_checkout.html', {'session': session, 'ref': ref, 'fee': fee, 'methods': methods})
+        # show guest session details and allow checkout
+        return render(request, 'parking/guest_receipt.html', {'session': session, 'ref': ref})
     return render(request, 'parking/guest_retrieve.html')
 
 @require_http_methods(["POST"])
@@ -295,116 +293,3 @@ def guest_checkout(request):
     else:
         messages.error(request, 'Payment failed. Please try again.')
         return render(request, 'parking/guest_receipt.html', {'session': session, 'ref': ref})
-
-
-def login_guest(request):
-    # Plate-only check-in: save plate in session and ask user to choose slot
-    if request.method == 'POST':
-        plate = request.POST.get('vehicle_plate', '').strip().upper()
-        if not plate:
-            messages.error(request, 'Vehicle plate number is required.')
-            return redirect('home')
-        request.session['guest_plate'] = plate
-        return redirect('select_slot')
-    return render(request, 'parking/login.html')
-
-
-@require_http_methods(["GET","POST"])
-def select_slot(request):
-    plate = request.session.get('guest_plate')
-    if not plate:
-        messages.error(request, 'Please enter your vehicle plate first.')
-        return redirect('login')
-    if request.method == 'POST':
-        slot_id = request.POST.get('slot_id')
-        slot = get_object_or_404(ParkingSlot, id=slot_id, status='available')
-        slot.status = 'reserved'
-        slot.save()
-        guest, created = User.objects.get_or_create(username='guest')
-        if created:
-            guest.set_unusable_password(); guest.save()
-        session = ParkingSession.objects.create(user=guest, slot=slot, vehicle_plate=plate)
-        ref = f"CHK{str(session.session_id)[:8].upper()}"
-        try:
-            del request.session['guest_plate']
-        except KeyError:
-            pass
-        # send IoT park command
-        send_iot_command(session, 'park')
-        return render(request, 'parking/guest_receipt.html', {'session': session, 'ref': ref})
-    slots = ParkingSlot.objects.filter(status='available').order_by('level','column')
-    return render(request, 'parking/select_slot.html', {'slots': slots})
-
-
-# Admin views
-def admin_login(request):
-    """Admin login with staff/superuser check."""
-    if request.method == 'POST':
-        username = request.POST.get('username', '')
-        password = request.POST.get('password', '')
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            if user.is_staff and user.is_superuser:
-                login(request, user)
-                return redirect('admin_dashboard')
-            else:
-                messages.error(request, 'Admin access required.')
-        else:
-            messages.error(request, 'Invalid credentials.')
-    return render(request, 'parking/admin_login.html')
-
-@login_required
-def admin_dashboard(request):
-    """Admin dashboard to manage all sessions and slots."""
-    if not request.user.is_staff or not request.user.is_superuser:
-        messages.error(request, 'Admin access required.')
-        return redirect('home')
-    
-    all_sessions = ParkingSession.objects.all().order_by('-check_in')
-    active_sessions = all_sessions.filter(status='active')
-    completed_sessions = all_sessions.filter(status='completed')
-    slots = ParkingSlot.objects.all().order_by('level', 'column')
-    
-    context = {
-        'all_sessions': all_sessions[:20],
-        'active_sessions': active_sessions,
-        'completed_sessions': completed_sessions,
-        'total_slots': slots.count(),
-        'available_slots': slots.filter(status='available').count(),
-        'occupied_slots': slots.filter(status='occupied').count(),
-        'reserved_slots': slots.filter(status='reserved').count(),
-        'slots': slots,
-    }
-    return render(request, 'parking/admin_dashboard.html', context)
-
-@login_required
-def admin_end_session(request, session_id):
-    """Admin can end any active session."""
-    if not request.user.is_staff or not request.user.is_superuser:
-        return JsonResponse({'ok': False, 'error': 'Unauthorized'}, status=403)
-    
-    session = get_object_or_404(ParkingSession, session_id=session_id, status='active')
-    session.check_out = timezone.now()
-    session.status = 'completed'
-    session.save()
-    
-    slot = session.slot
-    slot.status = 'available'
-    slot.save()
-    
-    messages.success(request, f'Session {session_id} ended by admin.')
-    return redirect('admin_dashboard')
-
-@login_required
-def admin_reset_slot(request, slot_id):
-    """Admin can reset a slot status to available."""
-    if not request.user.is_staff or not request.user.is_superuser:
-        return JsonResponse({'ok': False, 'error': 'Unauthorized'}, status=403)
-    
-    slot = get_object_or_404(ParkingSlot, id=slot_id)
-    old_status = slot.status
-    slot.status = 'available'
-    slot.save()
-    
-    messages.success(request, f'Slot {slot.display_name} reset from {old_status} to available.')
-    return redirect('admin_dashboard')

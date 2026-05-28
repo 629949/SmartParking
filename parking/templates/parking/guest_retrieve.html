@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Retrieve Vehicle — SmartPark{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+<div class="col-md-5 col-lg-4">
+  <div class="text-center mb-4">
+    <div style="font-size:2rem;color:var(--sp-accent);"><i class="bi bi-p-square-fill"></i></div>
+    <h4 class="fw-bold mt-2">Retrieve Your Vehicle</h4>
+    <p class="text-muted small">Enter your check-in reference to proceed to checkout</p>
+  </div>
+  <div class="card">
+    <div class="card-body p-4">
+      <form method="post">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="form-label small text-muted">Check-in Reference</label>
+        <input type="text" name="ref" class="form-control" placeholder="CHK..." autofocus required>
+        <small class="text-muted">Format: CHK followed by 8 characters</small>
+      </div>
+      <button type="submit" class="btn btn-primary w-100 mt-1">Find Session</button>
+      </form>
+    </div>
+  </div>
+  <div class="text-center mt-3"><a href="{% url 'login' %}">Check in without reference</a></div>
+</div>
+</div>
+{% endblock %}

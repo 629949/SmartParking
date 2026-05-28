@@ -34,7 +34,12 @@ def send_iot_command(session, command_type):
 
 
 def _mqtt_publish(cmd):
-    """Publish command to MQTT broker (requires paho-mqtt installed and broker running)."""
+    """Publish command to ESP32-S3 via MQTT broker (requires paho-mqtt installed and broker running).
+    
+    Topics: smartpark/commands/<level>/<column>
+    Device: ESP32-S3 subscribes and executes motor commands.
+    """
+    # ESP32-S3 receives commands on MQTT and controls stepper motors
     try:
         import paho.mqtt.publish as publish
         topic = f"smartpark/commands/{cmd.target_level}/{cmd.target_column}"

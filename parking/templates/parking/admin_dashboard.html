@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard — SmartPark{% endblock %}
+{% block content %}
+<div class="row mb-4">
+  <div class="col">
+    <h2 class="fw-bold">Admin Dashboard</h2>
+    <p class="text-muted">Manage all parking sessions, slots, and system status</p>
+  </div>
+  <div class="col-auto">
+    <a href="{% url 'logout' %}" class="btn btn-outline-light">Logout</a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="stat-card">
+      <p class="section-title">Total Slots</p>
+      <p class="stat-number">{{ total_slots }}</p>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <p class="section-title">Available</p>
+      <p class="stat-number" style="color: var(--sp-green);">{{ available_slots }}</p>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <p class="section-title">Reserved/Occupied</p>
+      <p class="stat-number" style="color: var(--sp-amber);">{{ reserved_slots }}</p>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <p class="section-title">Active Sessions</p>
+      <p class="stat-number" style="color: var(--sp-accent);">{{ active_sessions.count }}</p>
+    </div>
+  </div>
+</div>
+
+<ul class="nav nav-tabs mb-3">
+  <li class="nav-item">
+    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#sessions">Active Sessions</button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#slots">Slot Status</button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#history">Recent Activity</button>
+  </li>
+</ul>
+
+<div class="tab-content">
+  <!-- Active Sessions Tab -->
+  <div class="tab-pane fade show active" id="sessions">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Reference</th>
+            <th>Vehicle</th>
+            <th>Slot</th>
+            <th>User</th>
+            <th>Check-In</th>
+            <th>Duration</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for session in active_sessions %}
+          <tr>
+            <td><strong>{{ session.session_id|truncatechars:12 }}</strong></td>
+            <td>{{ session.vehicle_plate }}</td>
+            <td><span class="badge-reserved">{{ session.slot.display_name }}</span></td>
+            <td>{{ session.user.username }}</td>
+            <td>{{ session.check_in|date:"H:i" }}</td>
+            <td>{{ session.duration_minutes }}m</td>
+            <td>
+              <a href="{% url 'admin_end_session' session.session_id %}" class="btn btn-sm btn-danger" onclick="return confirm('End this session?')">End</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="text-center text-muted">No active sessions</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Slot Status Tab -->
+  <div class="tab-pane fade" id="slots">
+    <div class="row g-2">
+      {% for slot in slots %}
+      <div class="col-md-4 col-lg-3">
+        <div class="card slot-card {% if slot.status == 'available' %}available{% elif slot.status == 'occupied' %}occupied{% else %}reserved{% endif %}">
+          <div class="card-body text-center">
+            <h5 class="mb-1">{{ slot.display_name }}</h5>
+            <span class="badge-{{ slot.status }}">{{ slot.get_status_display }}</span>
+            {% if slot.status != 'available' %}
+            <div class="mt-2">
+              <a href="{% url 'admin_reset_slot' slot.id %}" class="btn btn-xs btn-warning" onclick="return confirm('Reset to available?')">Reset</a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Recent Activity Tab -->
+  <div class="tab-pane fade" id="history">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Vehicle</th>
+            <th>Slot</th>
+            <th>User</th>
+            <th>Status</th>
+            <th>Check-In</th>
+            <th>Check-Out</th>
+            <th>Duration</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for session in all_sessions %}
+          <tr>
+            <td>{{ session.vehicle_plate }}</td>
+            <td>{{ session.slot.display_name }}</td>
+            <td>{{ session.user.username }}</td>
+            <td><span class="badge-{{ session.status }}">{{ session.get_status_display }}</span></td>
+            <td>{{ session.check_in|date:"H:i" }}</td>
+            <td>{% if session.check_out %}{{ session.check_out|date:"H:i" }}{% else %}-{% endif %}</td>
+            <td>{% if session.check_out %}{{ session.duration_minutes }}m{% else %}-{% endif %}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="text-center text-muted">No sessions</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

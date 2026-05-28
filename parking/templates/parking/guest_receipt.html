@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Check-in Receipt — SmartPark{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-6 col-lg-5">
+    <div class="card">
+      <div class="card-body text-center">
+        <h4 class="fw-bold mb-3">✓ Check-in Successful</h4>
+        <div class="mb-3 p-3 bg-light rounded">
+          <p class="mb-1"><strong>Vehicle:</strong> {{ session.vehicle_plate }}</p>
+          <p class="mb-1"><strong>Slot:</strong> {{ session.slot.display_name }}</p>
+          <p class="mb-1"><strong>Time:</strong> {{ session.check_in|date:"H:i" }}</p>
+        </div>
+        <hr>
+        <p class="small text-muted mb-2">Your reference code:</p>
+        <div class="my-3">
+          <h3 class="fw-bold" style="color: var(--sp-accent); font-size: 2rem; letter-spacing: 2px;">{{ ref }}</h3>
+        </div>
+        <p class="small text-warning mb-3"><i class="bi bi-exclamation-circle"></i> Save this code to retrieve your vehicle later</p>
+        {% if receipt %}
+        <div class="alert alert-success small">Payment confirmed! Receipt #{{ receipt.receipt_number }}</div>
+        {% endif %}
+        <a href="{% url 'home' %}" class="btn btn-secondary w-100">Done</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

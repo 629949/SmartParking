@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Choose Parking Slot — SmartPark{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-10">
+    <h4 class="mb-3">Choose a parking slot</h4>
+    <p class="text-muted small">Select any available slot below to complete check-in.</p>
+    <div class="row g-3">
+      {% for slot in slots %}
+      <div class="col-sm-6 col-md-4">
+        <div class="card slot-card available">
+          <div class="card-body text-center">
+            <h5 class="mb-1">{{ slot.display_name }}</h5>
+            <p class="small text-muted mb-2">Level {{ slot.level }} · {{ slot.slot_number }}</p>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="slot_id" value="{{ slot.id }}">
+              <button class="btn btn-primary btn-sm">Reserve this slot</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="col-12">
+        <div class="alert alert-warning">No available slots at the moment.</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
