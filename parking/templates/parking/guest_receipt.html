@@ -3,24 +3,47 @@
 {% block content %}
 <div class="row justify-content-center mt-5">
   <div class="col-md-6 col-lg-5">
-    <div class="card">
+    <div class="card shadow-lg">
       <div class="card-body text-center">
-        <h4 class="fw-bold mb-3">✓ Check-in Successful</h4>
-        <div class="mb-3 p-3 bg-light rounded">
-          <p class="mb-1"><strong>Vehicle:</strong> {{ session.vehicle_plate }}</p>
-          <p class="mb-1"><strong>Slot:</strong> {{ session.slot.display_name }}</p>
-          <p class="mb-1"><strong>Time:</strong> {{ session.check_in|date:"H:i" }}</p>
+        <div style="font-size:2.5rem;color:var(--sp-green);margin-bottom:1rem;">
+          <i class="bi bi-check-circle-fill"></i>
         </div>
-        <hr>
-        <p class="small text-muted mb-2">Your reference code:</p>
-        <div class="my-3">
-          <h3 class="fw-bold" style="color: var(--sp-accent); font-size: 2rem; letter-spacing: 2px;">{{ ref }}</h3>
+        <h4 class="fw-bold mb-2" style="color:var(--sp-text);">Check-in Successful</h4>
+        <div class="mb-4 p-3 rounded" style="background:rgba(127,184,255,0.08);border:1px solid rgba(127,184,255,0.2);">
+          <p class="mb-2" style="color:var(--sp-text);">
+            <strong>Vehicle:</strong> 
+            <span style="color:var(--sp-accent);">{{ session.vehicle_plate }}</span>
+          </p>
+          <p class="mb-2" style="color:var(--sp-text);">
+            <strong>Slot:</strong> 
+            <span style="color:var(--sp-accent);">{{ session.slot.display_name }}</span>
+          </p>
+          <p class="mb-0" style="color:var(--sp-text);">
+            <strong>Check-in:</strong> 
+            <span style="color:var(--sp-accent);">{{ session.check_in|date:"H:i" }}</span>
+          </p>
         </div>
-        <p class="small text-warning mb-3"><i class="bi bi-exclamation-circle"></i> Save this code to retrieve your vehicle later</p>
+        <div style="border-top:1px solid var(--sp-border);border-bottom:1px solid var(--sp-border);padding:1.5rem 0;margin-bottom:1.5rem;">
+          <p class="small text-muted mb-2">Your Reference Code</p>
+          <div style="font-size:2.5rem;font-weight:800;color:var(--sp-accent);letter-spacing:3px;font-family:'Courier New',monospace;">
+            {{ ref }}
+          </div>
+        </div>
+        <p class="small mb-3" style="color:var(--sp-amber);">
+          <i class="bi bi-exclamation-circle me-1"></i>
+          <strong>Save this code to retrieve your vehicle later</strong>
+        </p>
         {% if receipt %}
-        <div class="alert alert-success small">Payment confirmed! Receipt #{{ receipt.receipt_number }}</div>
+        <div class="mb-3 p-2 rounded" style="background:rgba(63,185,80,0.15);border:1px solid rgba(63,185,80,0.3);">
+          <p class="small mb-0" style="color:var(--sp-green);">
+            <i class="bi bi-check-circle me-1"></i>
+            Payment confirmed! Receipt #{{ receipt.receipt_number }}
+          </p>
+        </div>
         {% endif %}
-        <a href="{% url 'home' %}" class="btn btn-secondary w-100">Done</a>
+        <a href="{% url 'home' %}" class="btn btn-primary w-100 mt-2">
+          <i class="bi bi-house me-2"></i>Return Home
+        </a>
       </div>
     </div>
   </div>
